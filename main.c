@@ -112,6 +112,11 @@ void setClockFrequency (void) {
 //////////////////////////////////////////////VVV REAL METHODS VVV
 
 
+void updateHourLights (void) {
+
+}
+
+
 void updateLights (void) {
 	//Updating what color we should be using;
 	if (minutesCounter % 12 == 0) {                 //Updates green 5 times an hour
@@ -135,6 +140,34 @@ void setLEDColor(void) {
 }
 
 
+
+
+void updateMinute (void) {
+	////////////////////////Minutes
+	minutesCounter++;                          //Add a minute
+	if (minutesCounter == 59) {
+		minutesCounter = 0;
+
+		updateHour();
+		updateLights();  //Updating the light colors every minute
+	} else {
+		minutesCounter++;
+		updateLights();  //Updating the light colors every minute
+	}
+}
+
+void updateHour (void) {
+	////////////////////////Hours
+	hoursCounter++;
+	if (hoursCounter == 24) {
+		hoursCounter = 1;
+		uodateHourLights();
+	} else {
+		hoursCounter++;
+		updateHourLights();
+	}
+}
+
 void timerA0Interrupt (void) {                   //Loop set to fire every millisecond
 
 	//Catching the interrupts
@@ -149,30 +182,16 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 		P2OUT&=~(BIT0 | BIT1 | BIT2); // Turn lights off
 	}
 
-
 	////////////////////////Secounds
 	if (milliSecondsCounter == 999) {
 		milliSecondsCounter = 0;                   //Reset the timer
-		minutesCounter++;                          //Add a minute
+
+		updateMinute();
 	} else {
 		milliSecondsCounter++;
 	}
-	////////////////////////Minutes
-	if (minutesCounter == 59) {
-		minutesCounter = 0;
-		hoursCounter++;
-		updateLights();  //Updating the light colors every minute
-	} else {
-		minutesCounter++;
-		updateLights();  //Updating the light colors every minute
-	}
-	////////////////////////Hours
-	if (hoursCounter == 24) {
-		hoursCounter = 1;
-	} else {
-		hoursCounter++;
-	}
 }
+
 
 
 void main (void) {
