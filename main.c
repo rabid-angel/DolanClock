@@ -97,7 +97,10 @@ void configureTimer (void) {
 	TA0CCR2=0x0040; //GREEN LED
 	TA0CCTL3=0x2010;      //CCTL3
 	TA0CCR3=0x0040; //BLUE LED
+	TA0CCTL4=0x2010;      //CCTL4
+	TA0CCR4=0x0040; //RED LED1
 	TA0CTL=0x0116;
+
 }
 
 void setClockFrequency (void) {
@@ -111,6 +114,12 @@ void setClockFrequency (void) {
 
 //////////////////////////////////////////////VVV REAL METHODS VVV
 
+void shiftColor(r,g,b,r_new,g_new,b_new,p){
+	//p is the proportion shifted, 0<=p<=1
+	TA0CCR1=(r*(1-p))+(r_new*p);
+	TA0CCR2=(g*(1-p))+(g_new*p);
+	TA0CCR3=(g*(1-p))+(g_new*p);
+}
 
 void updateHourLights (void) {
 
