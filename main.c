@@ -16,7 +16,7 @@
 //////////////////////////////////////////////Global Variables
 
 int color = 0;
-int mode = 1; //Automatic mode by default
+int mode = 0; //Automatic mode by default
 int counter = 0;
 int milliSecondsCounter = 0;
 short minutesCounter = 0;
@@ -65,6 +65,7 @@ void initializeLED (void) {
 	P2DIR |= BIT0;                  // Configure P2.0 as output
 	P2DIR |= BIT1;                  // Configure P2.1 as output
 	P2DIR |= BIT2;				   // Configure P2.2 as output
+	P1DIR |= BIT0;
 
 	selectPortFunction(2,0,0,0);
 	selectPortFunction(2,1,0,0);
@@ -162,7 +163,6 @@ void updateMinute (void) {
 		updateHour();
 		updateLights();  //Updating the light colors every minute
 	} else {
-		minutesCounter++;
 		updateLights();  //Updating the light colors every minute
 	}
 }
@@ -173,28 +173,28 @@ void portOneInterrupt(void){
 	unsigned short iflag = P1IV;
 
 	if(!(P1IN & BIT1)){
-		if(mode == 1){
-			mode = 2;
+		if(mode == 0){
+			mode = 1;
 			P1OUT&=~BIT0;
-		} else if(mode == 2) {
+		} else if(mode == 1) {
 			P1OUT|=BIT0;
 			TA0CCR1 = 0;
 			TA0CCR2 = 0;
 			TA0CCR3 = 0;
-			mode = 3;
-		} else if(mode == 3){
+			mode = 2;
+		} else if(mode == 2){
 			TA0CCR1 = redArray[redIntensity];
 			TA0CCR2 = greenArray[greenIntensity];
 			TA0CCR3 = blueArray[blueIntensity];
-			mode = 1;
+			mode = 0;
 		}
 	}
 
 	if(!(P1IN & BIT4)){
-		if(mode == 2){
+		if(mode == 1){
 			updateMinute();
 		}
-		else if(mode == 3){
+		else if(mode == 2){
 			updateHour();
 		}
 	}
@@ -204,26 +204,26 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 
 	//Catching the interrupts
 	unsigned short intv = TA0IV; //Table on page 607
-	if(mode==1){
-		if (intv == 0x02) {                         //0x02 is interrupt on compare 1
-			P2OUT|=BIT0; // Turn Red LED on
-		} else if (intv == 0x04) {              //0x04 is interrupt on compare 2
-			P2OUT|=BIT1; // Turn green LED on
-		}else if (intv == 0x06) {               //0x06 is interrupt on compare 3
-			P2OUT|=BIT2; // Turn blue LED on
-		}else if (intv==0x0E) {                 //0x0E is overflow interrupt (you reached top of peak)
-			P2OUT&=~(BIT0 | BIT1 | BIT2); // Turn lights off
-		}
 
-		////////////////////////Secounds
-		if (milliSecondsCounter == 999) {
-			milliSecondsCounter = 0;                   //Reset the timer
-
-			updateMinute();
-		} else {
-			milliSecondsCounter++;
-		}
+	if (intv == 0x02) {                         //0x02 is interrupt on compare 1
+		P2OUT|=BIT0; // Turn Red LED on
+	} else if (intv == 0x04) {              //0x04 is interrupt on compare 2
+		P2OUT|=BIT1; // Turn green LED on
+	}else if (intv == 0x06) {               //0x06 is interrupt on compare 3
+		P2OUT|=BIT2; // Turn blue LED on
+	}else if (intv==0x0E) {                 //0x0E is overflow interrupt (you reached top of peak)
+		P2OUT&=~(BIT0 | BIT1 | BIT2); // Turn lights off
 	}
+
+	////////////////////////Secounds
+	if (milliSecondsCounter == 999) {
+		milliSecondsCounter = 0;                   //Reset the timer
+
+		updateMinute();
+	} else {
+		milliSecondsCounter++;
+	}
+
 }
 
 
@@ -241,7 +241,7 @@ void main (void) {
 	P1IES |= (BIT1 | BIT4);
 	NVIC_EnableIRQ(PORT1_IRQn);
 	NVIC_EnableIRQ(TA0_N_IRQn);
-
+	P1OUT|=BIT0;
 	for(;;)
 	{
 		// Delay
