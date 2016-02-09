@@ -121,6 +121,12 @@ void updateHourLights (void) {
 }
 
 
+void setLEDColor(void) {
+	TA0CCR1 = redArray[redIntensity];       //RED LED
+	TA0CCR2 = greenArray[greenIntensity];   //GREEN LED
+	TA0CCR3 = blueArray[blueIntensity];     //BLUE LED
+}
+
 void updateLights (void) {
 	//Updating what color we should be using;
 	if (minutesCounter % 12 == 0) {                 //Updates green 5 times an hour
@@ -136,30 +142,6 @@ void updateLights (void) {
 	setLEDColor();   //Taking the evaluated colors and changing the lights
 }
 
-
-void setLEDColor(void) {
-	TA0CCR1 = redArray[redIntensity];       //RED LED
-	TA0CCR2 = greenArray[greenIntensity];   //GREEN LED
-	TA0CCR3 = blueArray[blueIntensity];     //BLUE LED
-}
-
-
-
-
-void updateMinute (void) {
-	////////////////////////Minutes
-	minutesCounter++;                          //Add a minute
-	if (minutesCounter == 59) {
-		minutesCounter = 0;
-
-		updateHour();
-		updateLights();  //Updating the light colors every minute
-	} else {
-		minutesCounter++;
-		updateLights();  //Updating the light colors every minute
-	}
-}
-
 void updateHour (void) {
 	////////////////////////Hours
 	hoursCounter++;
@@ -172,25 +154,57 @@ void updateHour (void) {
 	}
 }
 
+void updateMinute (void) {
+	////////////////////////Minutes
+	minutesCounter++;                          //Add a minute
+	if (minutesCounter == 59) {
+		minutesCounter = 0;
+		updateHour();
+		updateLights();  //Updating the light colors every minute
+	} else {
+		minutesCounter++;
+		updateLights();  //Updating the light colors every minute
+	}
+}
+
+
+
 void portOneInterrupt(void){
 	unsigned short iflag = P1IV;
 
 	if(!(P1IN & BIT1)){
-		if(mode == 3) mode = 1;
-		else mode++;
+		if(mode == 1){
+			mode = 2;
+			P1OUT&=~BIT0;
+		} else if(mode == 2) {
+			P1OUT|=BIT0;
+			TA0CCR1 = 0;
+			TA0CCR2 = 0;
+			TA0CCR3 = 0;
+			mode = 3;
+		} else if(mode == 3){
+			TA0CCR1 = redArray[redIntensity];
+			TA0CCR2 = greenArray[greenIntensity];
+			TA0CCR3 = blueArray[blueIntensity];
+			mode = 1;
+		}
 	}
 
 	if(!(P1IN & BIT4)){
-		if(mode == 2) updateMinute();
-		else if(mode == 3) updateHour();
+		if(mode == 2){
+			updateMinute();
+		}
+		else if(mode == 3){
+			updateHour();
+		}
 	}
 }
 
 void timerA0Interrupt (void) {                   //Loop set to fire every millisecond
 
 	//Catching the interrupts
+	unsigned short intv = TA0IV; //Table on page 607
 	if(mode==1){
-		unsigned short intv = TA0IV; //Table on page 607
 		if (intv == 0x02) {                         //0x02 is interrupt on compare 1
 			P2OUT|=BIT0; // Turn Red LED on
 		} else if (intv == 0x04) {              //0x04 is interrupt on compare 2
