@@ -61,11 +61,6 @@ void selectPortFunction (int port, int line, int sel0, int sel1) {
 	}
 }
 
-void portOneInterrupt (void) {
-	unsigned short iflag = P1IV;
-	mode = mode * -1;
-}
-
 void initializeLED (void) {
 	P2DIR |= BIT0;                  // Configure P2.0 as output
 	P2DIR |= BIT1;                  // Configure P2.1 as output
@@ -170,34 +165,50 @@ void updateHour (void) {
 	hoursCounter++;
 	if (hoursCounter == 24) {
 		hoursCounter = 1;
-		uodateHourLights();
+		updateHourLights();
 	} else {
 		hoursCounter++;
 		updateHourLights();
 	}
 }
 
+void portOneInterrupt(void){
+	unsigned short iflag = P1IV;
+
+	if(!(P1IN & BIT1)){
+		if(mode == 3) mode = 1;
+		else mode++;
+	}
+
+	if(!(P1IN & BIT4)){
+		if(mode == 2) updateMinute();
+		else if(mode == 3) updateHour();
+	}
+}
+
 void timerA0Interrupt (void) {                   //Loop set to fire every millisecond
 
 	//Catching the interrupts
-	unsigned short intv = TA0IV; //Table on page 607
-	if (intv == 0x02) {                         //0x02 is interrupt on compare 1
-		P2OUT|=BIT0; // Turn Red LED on
-	} else if (intv == 0x04) {              //0x04 is interrupt on compare 2
-		P2OUT|=BIT1; // Turn green LED on
-	}else if (intv == 0x06) {               //0x06 is interrupt on compare 3
-		P2OUT|=BIT2; // Turn blue LED on
-	}else if (intv==0x0E) {                 //0x0E is overflow interrupt (you reached top of peak)
-		P2OUT&=~(BIT0 | BIT1 | BIT2); // Turn lights off
-	}
+	if(mode==1){
+		unsigned short intv = TA0IV; //Table on page 607
+		if (intv == 0x02) {                         //0x02 is interrupt on compare 1
+			P2OUT|=BIT0; // Turn Red LED on
+		} else if (intv == 0x04) {              //0x04 is interrupt on compare 2
+			P2OUT|=BIT1; // Turn green LED on
+		}else if (intv == 0x06) {               //0x06 is interrupt on compare 3
+			P2OUT|=BIT2; // Turn blue LED on
+		}else if (intv==0x0E) {                 //0x0E is overflow interrupt (you reached top of peak)
+			P2OUT&=~(BIT0 | BIT1 | BIT2); // Turn lights off
+		}
 
-	////////////////////////Secounds
-	if (milliSecondsCounter == 999) {
-		milliSecondsCounter = 0;                   //Reset the timer
+		////////////////////////Secounds
+		if (milliSecondsCounter == 999) {
+			milliSecondsCounter = 0;                   //Reset the timer
 
-		updateMinute();
-	} else {
-		milliSecondsCounter++;
+			updateMinute();
+		} else {
+			milliSecondsCounter++;
+		}
 	}
 }
 
