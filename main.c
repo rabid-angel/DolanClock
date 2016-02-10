@@ -24,6 +24,7 @@ short hoursCounter = 0;
 short greenIntensity = 0;
 short blueIntensity = 0;
 short redIntensity = 0;
+short radix = 0;
 
 unsigned short greenArray[5] = {128, 127, 84, 43, 0};  //Off, Lowest dim, Middle val, Half bright, Full on
 unsigned short blueArray[4] = {128, 127, 64, 0};       //Off, Lowest Dim, Half on, Full on
@@ -199,12 +200,11 @@ void portOneInterrupt(void){
 	}
 }
 
-short mod4 = 0;
 
-int doThing (int n){
-	if(n==0){return 1;}
-	else if(n==1){return 128;}
-	else{return 129;}
+
+int chooseBrightness (int n){
+	if(n==0){return 0;}
+	else{return 128;}
 }
 
 void timerA0Interrupt (void) {                   //Loop set to fire every millisecond
@@ -212,46 +212,58 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 	//Catching the interrupts
 	unsigned short intv = TA0IV; //Table on page 607
 
-	if (intv == 0x02&&mode!=1) {                         //0x02 is interrupt on compare 1
+	if (intv == 0x02 &&mode!=1) {                         //0x02 is interrupt on compare 1
 		P2OUT|=BIT0; // Turn Red LED on
-	} else if (intv == 0x04&&mode!=1) {              //0x04 is interrupt on compare 2
+	} else if (intv == 0x04 &&mode!=1) {              //0x04 is interrupt on compare 2
 		P2OUT|=BIT1; // Turn green LED on
-	}else if (intv == 0x06&&mode!=1) {               //0x06 is interrupt on compare 3
+	}else if (intv == 0x06 &&mode!=1) {               //0x06 is interrupt on compare 3
 		P2OUT|=BIT2; // Turn blue LED on
-	}else if (intv == 0x08&&mode!=2){
+	}else if (intv == 0x08 &&mode!=2){
 		P1OUT|=BIT0; //Turn Red hour LED on
 	}else if (intv==0x0E) {                 //0x0E is overflow interrupt (you reached top of peak)
 		P2OUT&=~(BIT0 | BIT1 | BIT2); // Turn lights off
-		P1OUT&=~BIT0;
+		if(!(radix<8)){P1OUT&=~BIT0;}
+		milliSecondsCounter++;
 	}
 
 	//controls hour seq
-	milliSecondsCounter++;
-	if(milliSecondsCounter==0||milliSecondsCounter==500||milliSecondsCounter==1000){
-		mod4++;
-		mod4=mod4%4;
-	if (mod4==0){
-		TA0CCR4= doThing(hoursCounter%3);
+	//milliSecondsCounter=milliSecondsCounter%1000;
+	if(milliSecondsCounter==1000){
+		radix++;
+		if(radix==16){radix=0;}
+		/*if (mod4==0){
+		TA0CCR4= 0;//doThing(hoursCounter%3);
 	}else if (mod4==1){
-		TA0CCR4= doThing(((int) (hoursCounter/3))%3);
+		TA0CCR4= 128;//doThing(((int) (hoursCounter/3))%3);
 	}else if (mod4==2){
-		TA0CCR4= doThing(((int) (hoursCounter/9))%3);
-	}else if (mod4==3){
-		TA0CCR4=0;
-	}
+		TA0CCR4= 0;//doThing(((int) (hoursCounter/9))%3);
+	}else{
+		TA0CCR4=129;
+	}*/
+		if(radix==0){
+			TA0CCR4=0;//chooseBrightness(hoursCounter%2);
+		}else if(radix==2){
+			TA0CCR4=0;//chooseBrightness(((int) (hoursCounter/2))%2);
+		}else if(radix==4){
+			TA0CCR4=0;//chooseBrightness(((int) (hoursCounter/4))%2);
+		}else if(radix==6){
+			TA0CCR4=0;//chooseBrightness(((int) (hoursCounter/8))%2);
+		}else if(radix==8){
+			TA0CCR4=0;//chooseBrightness(((int) (hoursCounter/16))%2);
+		}else{TA0CCR4=129;}
 
-	////////////////////////Secounds
-	if (milliSecondsCounter == 1000) {
-		milliSecondsCounter = 0;                   //Reset the timer
-		updateMinute();
-		//updateSecond();
-	}}
+		////////////////////////Secounds
+		if (milliSecondsCounter == 1000) {
+			milliSecondsCounter = 0;                   //Reset the timer
+			updateMinute();
+			//updateSecond();
+		}}
 
 }
 
 
 
-void main (void) {
+.void main (void) {
 	WDTCTL = WDTPW | WDTHOLD;
 
 	initializeLED();
