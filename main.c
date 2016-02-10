@@ -30,6 +30,8 @@ unsigned short greenArray[5] = {128, 127, 84, 43, 0};  //Off, Lowest dim, Middle
 unsigned short blueArray[4] = {128, 127, 64, 0};       //Off, Lowest Dim, Half on, Full on
 unsigned short redArray[3] = {128, 127, 0};            //Off, Lowest Dim, Full on
 
+unsigned short hour[5] = {0,0,0,0,0};
+
 //////////////////////////////////////////////CONFIGURATION JUNK
 
 void selectPortFunction (int port, int line, int sel0, int sel1) {
@@ -119,9 +121,12 @@ void shiftColor(r,g,b,r_new,g_new,b_new,p){
 }
 
 void updateHourLights (void) {
-
+	hour[4]=hoursCounter%2;
+	hour[3]=(((int) (hoursCounter/2))%2);
+	hour[2]=(((int) (hoursCounter/4))%2);
+	hour[1]=(((int) (hoursCounter/8))%2);
+	hour[0]=(((int) (hoursCounter/16))%2);
 }
-
 
 void setLEDColor(void) {
 	TA0CCR1 = redArray[redIntensity];       //RED LED
@@ -222,48 +227,26 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 		P1OUT|=BIT0; //Turn Red hour LED on
 	}else if (intv==0x0E) {                 //0x0E is overflow interrupt (you reached top of peak)
 		P2OUT&=~(BIT0 | BIT1 | BIT2); // Turn lights off
-		if(!(radix<8)){P1OUT&=~BIT0;}
+		if(radix>4||!(hour[radix])){P1OUT&=~BIT0;}//leave the red led on when hour[radix] is 0.
 		milliSecondsCounter++;
 	}
 
+	if(milliSecondsCounter==800){TA0CCR4=129;}
 	//controls hour seq
-	//milliSecondsCounter=milliSecondsCounter%1000;
 	if(milliSecondsCounter==1000){
 		radix++;
-		if(radix==16){radix=0;}
-		/*if (mod4==0){
-		TA0CCR4= 0;//doThing(hoursCounter%3);
-	}else if (mod4==1){
-		TA0CCR4= 128;//doThing(((int) (hoursCounter/3))%3);
-	}else if (mod4==2){
-		TA0CCR4= 0;//doThing(((int) (hoursCounter/9))%3);
-	}else{
-		TA0CCR4=129;
-	}*/
-		if(radix==0){
-			TA0CCR4=0;//chooseBrightness(hoursCounter%2);
-		}else if(radix==2){
-			TA0CCR4=0;//chooseBrightness(((int) (hoursCounter/2))%2);
-		}else if(radix==4){
-			TA0CCR4=0;//chooseBrightness(((int) (hoursCounter/4))%2);
-		}else if(radix==6){
-			TA0CCR4=0;//chooseBrightness(((int) (hoursCounter/8))%2);
-		}else if(radix==8){
-			TA0CCR4=0;//chooseBrightness(((int) (hoursCounter/16))%2);
-		}else{TA0CCR4=129;}
-
-		////////////////////////Secounds
-		if (milliSecondsCounter == 1000) {
-			milliSecondsCounter = 0;                   //Reset the timer
-			updateMinute();
-			//updateSecond();
-		}}
+		if(radix==7){radix=0;}
+		if(radix<5){TA0CCR4=128;}
+		milliSecondsCounter = 0;                   //Reset the timer
+		updateMinute();
+		//updateSecond();
+		}
 
 }
 
 
 
-.void main (void) {
+void main (void) {
 	WDTCTL = WDTPW | WDTHOLD;
 
 	initializeLED();
