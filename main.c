@@ -114,7 +114,7 @@ void shiftColor(r,g,b,r_new,g_new,b_new,p){
 	//p is the proportion shifted, 0<=p<=1
 	TA0CCR1=(r*(1-p))+(r_new*p);
 	TA0CCR2=(g*(1-p))+(g_new*p);
-	TA0CCR3=(g*(1-p))+(g_new*p);
+	TA0CCR3=(b*(1-p))+(b_new*p);
 }
 
 void updateHourLights (void) {
@@ -147,10 +147,9 @@ void updateHour (void) {
 	////////////////////////Hours
 	hoursCounter++;
 	if (hoursCounter == 24) {
-		hoursCounter = 1;
+		hoursCounter = 0;
 		updateHourLights();
 	} else {
-		hoursCounter++;
 		updateHourLights();
 	}
 }
@@ -158,7 +157,7 @@ void updateHour (void) {
 void updateMinute (void) {
 	////////////////////////Minutes
 	minutesCounter++;                          //Add a minute
-	if (minutesCounter == 59) {
+	if (minutesCounter == 60) {
 		minutesCounter = 0;
 		updateHour();
 		updateLights();  //Updating the light colors every minute
@@ -200,29 +199,53 @@ void portOneInterrupt(void){
 	}
 }
 
+short mod4 = 0;
+
+int doThing (int n){
+	if(n==0){return 1;}
+	else if(n==1){return 128;}
+	else{return 129;}
+}
+
 void timerA0Interrupt (void) {                   //Loop set to fire every millisecond
 
 	//Catching the interrupts
 	unsigned short intv = TA0IV; //Table on page 607
 
-	if (intv == 0x02) {                         //0x02 is interrupt on compare 1
+	if (intv == 0x02&&mode!=1) {                         //0x02 is interrupt on compare 1
 		P2OUT|=BIT0; // Turn Red LED on
-	} else if (intv == 0x04) {              //0x04 is interrupt on compare 2
+	} else if (intv == 0x04&&mode!=1) {              //0x04 is interrupt on compare 2
 		P2OUT|=BIT1; // Turn green LED on
-	}else if (intv == 0x06) {               //0x06 is interrupt on compare 3
+	}else if (intv == 0x06&&mode!=1) {               //0x06 is interrupt on compare 3
 		P2OUT|=BIT2; // Turn blue LED on
+	}else if (intv == 0x08&&mode!=2){
+		P1OUT|=BIT0; //Turn Red hour LED on
 	}else if (intv==0x0E) {                 //0x0E is overflow interrupt (you reached top of peak)
 		P2OUT&=~(BIT0 | BIT1 | BIT2); // Turn lights off
+		P1OUT&=~BIT0;
+	}
+
+	//controls hour seq
+	milliSecondsCounter++;
+	if(milliSecondsCounter==0||milliSecondsCounter==500||milliSecondsCounter==1000){
+		mod4++;
+		mod4=mod4%4;
+	if (mod4==0){
+		TA0CCR4= doThing(hoursCounter%3);
+	}else if (mod4==1){
+		TA0CCR4= doThing(((int) (hoursCounter/3))%3);
+	}else if (mod4==2){
+		TA0CCR4= doThing(((int) (hoursCounter/9))%3);
+	}else if (mod4==3){
+		TA0CCR4=0;
 	}
 
 	////////////////////////Secounds
-	if (milliSecondsCounter == 999) {
+	if (milliSecondsCounter == 1000) {
 		milliSecondsCounter = 0;                   //Reset the timer
-
 		updateMinute();
-	} else {
-		milliSecondsCounter++;
-	}
+		//updateSecond();
+	}}
 
 }
 
