@@ -202,7 +202,7 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 		P1OUT|=BIT0; //Turn Red hour LED on
 	}else if (intv==0x0E) {                 //0x0E is overflow interrupt (you reached top of peak)
 		P2OUT&=~(BIT0 | BIT1 | BIT2); // Turn lights off
-		if(radix>4||!(hour[radix])){P1OUT&=~BIT0;}//leave the red led on when hour[radix] is 0.
+		if(radix>4||!(hour[radix])||milliSecondsCounter>800){P1OUT&=~BIT0;}//leave the red led on when hour[radix] is 0.
 		milliSecondsCounter++;
 	}
 
@@ -221,7 +221,7 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 				TA0CCR3=((colors[minute[1]]+1)%2)*129;
 			}
 
-	if(milliSecondsCounter==800){TA0CCR4=129;}
+	if(milliSecondsCounter>800){TA0CCR4=129;}
 
 	//controls hour seq
 	if(milliSecondsCounter==1000){
