@@ -15,22 +15,22 @@
 
 //////////////////////////////////////////////Global Variables
 
-int color = 0;
+//int color = 0;
 int mode = 0; //Automatic mode by default
 int counter = 0;
 int milliSecondsCounter = 0;
 short secondsCounter = 0;
-short minutesCounter = 23;
+int minutesCounter = 0;
 short hoursCounter = 0;
-short greenIntensity = 0;
-short blueIntensity = 0;
-short redIntensity = 0;
+//short greenIntensity = 0;
+//short blueIntensity = 0;
+//short redIntensity = 0;
 short radix = 0;
 unsigned short m=0;
 
-unsigned short greenArray[5] = {128, 127, 84, 43, 0};  //Off, Lowest dim, Middle val, Half bright, Full on
-unsigned short blueArray[4] = {128, 127, 64, 0};       //Off, Lowest Dim, Half on, Full on
-unsigned short redArray[3] = {128, 127, 0};            //Off, Lowest Dim, Full on
+//unsigned short greenArray[5] = {128, 127, 84, 43, 0};  //Off, Lowest dim, Middle val, Half bright, Full on
+//unsigned short blueArray[4] = {128, 127, 64, 0};       //Off, Lowest Dim, Half on, Full on
+//unsigned short redArray[3] = {128, 127, 0};            //Off, Lowest Dim, Full on
 
 unsigned short hour[5] = {0,0,0,0,0};
 unsigned short colors[6] = {4,6,2,3,1,5};
@@ -139,9 +139,16 @@ void updateHour (void) {
 
 void updateMinute (void) {
 	////////////////////////Minutes
-	minutesCounter++;                          //Add a minute
+	minutesCounter++;
+	//minute[1]=((int) ((minutesCounter%10)*(6/10)));
+	//minute[1]=(((int) (minutesCounter*(36/60)))%6);
 	minute[0]=(((int) (minutesCounter/10))%6);
-	minute[1]=(((int) (minutesCounter*(36/60)))%6);
+	if (minute[0]==0){minute[1]=minute[1]+1;}
+	//minute[0]=(((int) (minutesCounter*(36/60)))%6);
+
+	//minute[2]=(((int) (minutesCounter/10))%6);
+	//minute[3]=(((int) (minutesCounter*(36/60)))%6);
+	//minute[4]=(((int) (minutesCounter/10))%6);
 
 	if (minutesCounter == 60) {
 		minutesCounter = 0;
@@ -151,7 +158,7 @@ void updateMinute (void) {
 
 void updateSecond (void) {
 	secondsCounter++;
-	if (secondsCounter == 5){
+	if (secondsCounter == 60){
 		secondsCounter=0;
 		updateMinute();
 	}
@@ -162,7 +169,7 @@ void updateSecond (void) {
 void portOneInterrupt(void){
 	unsigned short iflag = P1IV;
 
-	if(!(P1IN & BIT1)){
+	if(!(P1IN & BIT4)){
 		if(mode == 0){
 			mode = 1;
 			P1OUT&=~BIT0;
@@ -173,13 +180,17 @@ void portOneInterrupt(void){
 		}
 	}
 
-	if(!(P1IN & BIT4)){
-		if(mode == 1){
+	if(!(P1IN & BIT1)){
+/*		if(mode == 1){
+			int i;
+			for(i=0;i<60;i++){
+				updateSecond();
+			}*/
 			updateMinute();
-		}
-		else if(mode == 2){
+		//}
+/*		else if(mode == 2){
 			updateHour();
-		}
+		}*/
 	}
 }
 
@@ -203,22 +214,37 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 		milliSecondsCounter++;
 	}
 
+	if(m==2){
+				TA0CCR1=129;
+				TA0CCR2=129;
+				TA0CCR3=129;
+			//	TA0CCR1=(((int) (colors[minute[1]]/4)+1)%2)*129;
+			//					TA0CCR2=(((int) (colors[minute[1]]/2)+1)%2)*129;
+			//					TA0CCR3=((colors[minute[1]]+1)%2)*129;
+			}else if(m==1){
+				TA0CCR1=(((int) (colors[minute[0]]/4)+1)%2)*129;//0
+				TA0CCR2=(((int) (colors[minute[0]]/2)+1)%2)*129;//129
+				TA0CCR3=((colors[minute[0]]+1)%2)*129;//129
+			}else{
+				TA0CCR1=(((int) (colors[minute[1]]/4)+1)%2)*129;
+				TA0CCR2=(((int) (colors[minute[1]]/2)+1)%2)*129;
+				TA0CCR3=((colors[minute[1]]+1)%2)*129;
+				/*does this:
+				if(((int) (colors[minute[m-1]]/4))%2){TA0CCR1=0;}else{TA0CCR1=129;}
+				if(((int) (colors[minute[m-1]]/2))%2){TA0CCR2=0;}else{TA0CCR2=129;}
+				if(colors[minute[m-1]]%2){TA0CCR3=0;}else{TA0CCR3=129;}*/
+			}
+
 	if(milliSecondsCounter==800){TA0CCR4=129;}
 	//controls hour seq
 	if(milliSecondsCounter==1000){
 		radix++;
-		//m++;
-		if(m>2){if(m==3){m=0;} TA0CCR1=TA0CCR2=TA0CCR3=129;}else{
-			TA0CCR1=(((int) (colors[minute[m]]/4)+1)%2)*129;
-			TA0CCR2=(((int) (colors[minute[m]]/2)+1)%2)*129;
-			TA0CCR3=((colors[minute[m]]+1)%2)*129;
 
-			/*does this:
-			if(((int) (colors[minute[m-1]]/4))%2){TA0CCR1=0;}else{TA0CCR1=129;}
-			if(((int) (colors[minute[m-1]]/2))%2){TA0CCR2=0;}else{TA0CCR2=129;}
-			if(colors[minute[m-1]]%2){TA0CCR3=0;}else{TA0CCR3=129;}*/
-		}
+
 		m++;
+		if(m==3){m=0;}
+
+		//for red LED
 		if(radix==7){radix=0;}
 		if(radix<5){TA0CCR4=128;}
 
@@ -238,6 +264,7 @@ void main (void) {
 	initializePushButton(4);
 	setClockFrequency();
 	configureTimer();
+	updateMinute();
 
 	P1IE = (BIT1 | BIT4);
 	P1IES |= (BIT1 | BIT4);
