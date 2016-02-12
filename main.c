@@ -22,21 +22,12 @@ int milliSecondsCounter = 0;
 short secondsCounter = 0;
 int minutesCounter = 0;
 short hoursCounter = 0;
-//short greenIntensity = 0;
-//short blueIntensity = 0;
-//short redIntensity = 0;
 short radix = 0;
 unsigned short m=0;
-
-//unsigned short greenArray[5] = {128, 127, 84, 43, 0};  //Off, Lowest dim, Middle val, Half bright, Full on
-//unsigned short blueArray[4] = {128, 127, 64, 0};       //Off, Lowest Dim, Half on, Full on
-//unsigned short redArray[3] = {128, 127, 0};            //Off, Lowest Dim, Full on
 
 unsigned short hour[5] = {0,0,0,0,0};
 unsigned short colors[6] = {4,6,2,3,1,5};
 unsigned short minute[2] = {0,0};
-
-//////////////////////////////////////////////CONFIGURATION JUNK
 
 void selectPortFunction (int port, int line, int sel0, int sel1) {
 	//This function allows you to select correct registers for specified Ports and Lines
@@ -130,9 +121,6 @@ void updateHour (void) {
 	hoursCounter++;
 	if (hoursCounter == 24) {
 		hoursCounter = 0;
-		//updateHourLights();
-	} else {
-		//updateHourLights();
 	}
 	updateHourLights();
 }
@@ -140,15 +128,19 @@ void updateHour (void) {
 void updateMinute (void) {
 	////////////////////////Minutes
 	minutesCounter++;
-	//minute[1]=((int) ((minutesCounter%10)*(6/10)));
+	//doesn't work for some reason?
 	//minute[1]=(((int) (minutesCounter*(36/60)))%6);
-	minute[0]=(((int) (minutesCounter/10))%6);
-	if (minute[0]==0){minute[1]=minute[1]+1;}
-	//minute[0]=(((int) (minutesCounter*(36/60)))%6);
+	if((minutesCounter%10)==0){//just updates every 10 minutes
+		minute[0]=minute[0]+1;
+	}
+	if(minute[0]==6){minute[0]=0;}
 
-	//minute[2]=(((int) (minutesCounter/10))%6);
-	//minute[3]=(((int) (minutesCounter*(36/60)))%6);
-	//minute[4]=(((int) (minutesCounter/10))%6);
+	if(minutesCounter%2==0){minute[1]=minute[1]+1;}//shows place in 2 minute increments repeating every 5 minutes
+	if(minute[1]==5){minute[1]=0;}
+
+	//minute[0]=(((int) (minutesCounter/10))%6);
+	//was good,but inconsistant
+	//if (minute[0]==0){minute[1]=minute[1]+1;}
 
 	if (minutesCounter == 60) {
 		minutesCounter = 0;
@@ -158,7 +150,7 @@ void updateMinute (void) {
 
 void updateSecond (void) {
 	secondsCounter++;
-	if (secondsCounter == 60){
+	if (secondsCounter == 5){
 		secondsCounter=0;
 		updateMinute();
 	}
@@ -181,16 +173,16 @@ void portOneInterrupt(void){
 	}
 
 	if(!(P1IN & BIT1)){
-/*		if(mode == 1){
+		if(mode == 1){
 			int i;
 			for(i=0;i<60;i++){
 				updateSecond();
-			}*/
+			}
 			updateMinute();
-		//}
-/*		else if(mode == 2){
+		}
+		else if(mode == 2){
 			updateHour();
-		}*/
+		}
 	}
 }
 
@@ -214,14 +206,12 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 		milliSecondsCounter++;
 	}
 
+//<<<<<<< HEAD
 	if(m==2){
 				TA0CCR1=129;
 				TA0CCR2=129;
 				TA0CCR3=129;
-			//	TA0CCR1=(((int) (colors[minute[1]]/4)+1)%2)*129;
-			//					TA0CCR2=(((int) (colors[minute[1]]/2)+1)%2)*129;
-			//					TA0CCR3=((colors[minute[1]]+1)%2)*129;
-			}else if(m==1){
+			}else if(m==0){
 				TA0CCR1=(((int) (colors[minute[0]]/4)+1)%2)*129;//0
 				TA0CCR2=(((int) (colors[minute[0]]/2)+1)%2)*129;//129
 				TA0CCR3=((colors[minute[0]]+1)%2)*129;//129
@@ -229,18 +219,15 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 				TA0CCR1=(((int) (colors[minute[1]]/4)+1)%2)*129;
 				TA0CCR2=(((int) (colors[minute[1]]/2)+1)%2)*129;
 				TA0CCR3=((colors[minute[1]]+1)%2)*129;
-				/*does this:
-				if(((int) (colors[minute[m-1]]/4))%2){TA0CCR1=0;}else{TA0CCR1=129;}
-				if(((int) (colors[minute[m-1]]/2))%2){TA0CCR2=0;}else{TA0CCR2=129;}
-				if(colors[minute[m-1]]%2){TA0CCR3=0;}else{TA0CCR3=129;}*/
 			}
 
 	if(milliSecondsCounter==800){TA0CCR4=129;}
+
 	//controls hour seq
 	if(milliSecondsCounter==1000){
-		radix++;
+		radix++;//radix cycles through the bright/not bright for hour representation
 
-
+		//does thing with cycling color for minute
 		m++;
 		if(m==3){m=0;}
 
@@ -251,9 +238,13 @@ void timerA0Interrupt (void) {                   //Loop set to fire every millis
 		milliSecondsCounter = 0;                   //Reset the timer
 		updateSecond();
 		}
+		if(radix==16){radix=0;}
 
-}
-
+		if (milliSecondsCounter == 1000) {
+			milliSecondsCounter = 0;                   //Reset the timer
+			updateMinute();
+			//updateSecond();
+		}}
 
 
 void main (void) {
