@@ -150,7 +150,7 @@ void updateMinute (void) {
 
 void updateSecond (void) {
 	secondsCounter++;
-	if (secondsCounter == 5){
+	if (secondsCounter == 60){
 		secondsCounter=0;
 		updateMinute();
 	}
