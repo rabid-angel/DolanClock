@@ -173,14 +173,10 @@ void portOneInterrupt(void){
 	}
 
 	if(!(P1IN & BIT1)){
-		if(mode == 1){
-			int i;
-			for(i=0;i<60;i++){
-				updateSecond();
-			}
+		if(mode == 2){
 			updateMinute();
 		}
-		else if(mode == 2){
+		else if(mode == 1){
 			updateHour();
 		}
 	}
